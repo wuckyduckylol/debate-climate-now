@@ -24,6 +24,7 @@ const PERSONA_COLORS: Record<string, string> = {
   Naïve: "bg-accent text-accent-foreground",
   Cynic: "bg-muted text-muted-foreground",
   Zealot: "bg-primary text-primary-foreground",
+  Teacher: "bg-emerald-600 text-white",
 };
 
 export const PersonaSelector = ({ personas, selectedPersonaId, onSelect }: PersonaSelectorProps) => {
@@ -31,7 +32,7 @@ export const PersonaSelector = ({ personas, selectedPersonaId, onSelect }: Perso
     <Card>
       <CardHeader>
         <CardTitle>Choose Your Opponent</CardTitle>
-        <CardDescription>Select which Mr. Moneymaker persona to debate</CardDescription>
+        <CardDescription>Select which persona to debate on climate change</CardDescription>
       </CardHeader>
       <CardContent>
         <RadioGroup value={selectedPersonaId || undefined} onValueChange={onSelect}>
