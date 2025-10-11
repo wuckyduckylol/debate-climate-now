@@ -27,6 +27,9 @@ const PERSONA_COLORS: Record<string, string> = {
 };
 
 export const PersonaSelector = ({ personas, selectedPersonaId, onSelect }: PersonaSelectorProps) => {
+  console.log("PersonaSelector rendering with personas:", personas);
+  console.log("Number of personas:", personas.length);
+  
   return (
     <Card>
       <CardHeader>
