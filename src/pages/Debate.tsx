@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { SUPABASE_CONFIG } from "@/config/supabase";
 import { Button } from "@/components/ui/button";
 import { PersonaSelector } from "@/components/debate/PersonaSelector";
 import { DifficultySelector } from "@/components/debate/DifficultySelector";
