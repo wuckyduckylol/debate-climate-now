@@ -10,7 +10,6 @@ import { ChatInput } from "@/components/debate/ChatInput";
 import { EvidenceLocker, Evidence } from "@/components/debate/EvidenceLocker";
 import { ScorePanel } from "@/components/debate/ScorePanel";
 import { calculateBSI, updateRollingBSI, checkPassCriteria, TurnScores } from "@/lib/scoring";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { ArrowLeft } from "lucide-react";
 
 const Debate = () => {
@@ -20,7 +19,7 @@ const Debate = () => {
   const [personas, setPersonas] = useState<any[]>([]);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
-  const [difficulty, setDifficulty] = useState("Easy");
+  const [difficulty, setDifficulty] = useState<"Easy" | "Moderate" | "Hard" | "Extreme">("Easy");
   const [debateStarted, setDebateStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -50,16 +49,12 @@ const Debate = () => {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
     const { data: debate } = await supabase
       .from("debates")
-      .insert({
-        user_id: user.id,
+      .insert([{
         persona_id: selectedPersonaId,
         difficulty,
-      })
+      }])
       .select()
       .single();
 
@@ -133,8 +128,7 @@ const Debate = () => {
   };
 
   return (
-    <AuthGuard>
-      <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
         <div className="container mx-auto p-4">
           <Button variant="ghost" onClick={() => navigate("/")} className="mb-4">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back
@@ -168,7 +162,6 @@ const Debate = () => {
           )}
         </div>
       </div>
-    </AuthGuard>
   );
 };
 

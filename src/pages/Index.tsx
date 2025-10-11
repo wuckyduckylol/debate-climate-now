@@ -1,18 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Brain, Leaf, Target } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-    });
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-primary">
@@ -50,15 +41,9 @@ const Index = () => {
           </div>
 
           <div className="mt-12 space-x-4">
-            {isAuthenticated ? (
-              <Button size="lg" onClick={() => navigate("/debate")} className="shadow-glow">
-                Start Debating
-              </Button>
-            ) : (
-              <Button size="lg" onClick={() => navigate("/auth")} className="shadow-glow">
-                Get Started
-              </Button>
-            )}
+            <Button size="lg" onClick={() => navigate("/debate")} className="shadow-glow">
+              Start Debating
+            </Button>
           </div>
         </div>
       </div>

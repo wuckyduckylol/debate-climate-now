@@ -5,8 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Target, Zap, Flame } from "lucide-react";
 
 interface DifficultySelectorProps {
-  selectedDifficulty: string;
-  onSelect: (difficulty: string) => void;
+  selectedDifficulty: "Easy" | "Moderate" | "Hard" | "Extreme";
+  onSelect: (difficulty: "Easy" | "Moderate" | "Hard" | "Extreme") => void;
 }
 
 const DIFFICULTIES = [

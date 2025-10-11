@@ -23,7 +23,7 @@ export type Database = {
           persona_id: string
           result: Database["public"]["Enums"]["debate_result"]
           started_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           completed_at?: string | null
@@ -33,7 +33,7 @@ export type Database = {
           persona_id: string
           result?: Database["public"]["Enums"]["debate_result"]
           started_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           completed_at?: string | null
@@ -43,7 +43,7 @@ export type Database = {
           persona_id?: string
           result?: Database["public"]["Enums"]["debate_result"]
           started_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
