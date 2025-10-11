@@ -236,7 +236,13 @@ export type Database = {
       app_role: "student" | "instructor" | "admin"
       debate_result: "in_progress" | "passed" | "failed"
       difficulty_level: "Easy" | "Moderate" | "Hard" | "Extreme"
-      persona_type: "Denier" | "Doubter" | "Naïve" | "Cynic" | "Zealot"
+      persona_type:
+        | "Denier"
+        | "Doubter"
+        | "Naïve"
+        | "Cynic"
+        | "Zealot"
+        | "Teacher"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -367,7 +373,14 @@ export const Constants = {
       app_role: ["student", "instructor", "admin"],
       debate_result: ["in_progress", "passed", "failed"],
       difficulty_level: ["Easy", "Moderate", "Hard", "Extreme"],
-      persona_type: ["Denier", "Doubter", "Naïve", "Cynic", "Zealot"],
+      persona_type: [
+        "Denier",
+        "Doubter",
+        "Naïve",
+        "Cynic",
+        "Zealot",
+        "Teacher",
+      ],
     },
   },
 } as const
