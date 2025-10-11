@@ -23,38 +23,24 @@ const Debate = () => {
   const [debateStarted, setDebateStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(true);
   const [selectedEvidence, setSelectedEvidence] = useState<string[]>([]);
   const [rollingBSI, setRollingBSI] = useState(0);
   const [latestScores, setLatestScores] = useState<TurnScores | undefined>();
   const [debateId, setDebateId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchData();
+    fetchPersonas();
+    fetchEvidence();
   }, []);
 
-  const fetchData = async () => {
-    setDataLoading(true);
-    try {
-      const [personasRes, evidenceRes] = await Promise.all([
-        supabase.from("personas").select("*"),
-        supabase.from("evidence_packets").select("*")
-      ]);
-      
-      if (personasRes.data) {
-        console.log("Loaded personas:", personasRes.data);
-        setPersonas(personasRes.data);
-      }
-      if (evidenceRes.data) {
-        console.log("Loaded evidence:", evidenceRes.data.length, "packets");
-        setEvidence(evidenceRes.data);
-      }
-    } catch (error) {
-      console.error("Error loading data:", error);
-      toast({ title: "Error loading data", description: "Please refresh the page", variant: "destructive" });
-    } finally {
-      setDataLoading(false);
-    }
+  const fetchPersonas = async () => {
+    const { data } = await supabase.from("personas").select("*");
+    if (data) setPersonas(data);
+  };
+
+  const fetchEvidence = async () => {
+    const { data } = await supabase.from("evidence_packets").select("*");
+    if (data) setEvidence(data);
   };
 
   const startDebate = async () => {
@@ -154,18 +140,9 @@ const Debate = () => {
                 <h1 className="text-4xl font-bold mb-2">Convince Mr. Moneymaker</h1>
                 <p className="text-muted-foreground">Select your opponent and difficulty</p>
               </div>
-              {dataLoading ? (
-                <div className="text-center py-8">
-                  <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
-                  <p className="mt-4 text-muted-foreground">Loading personas and evidence...</p>
-                </div>
-              ) : (
-                <>
-                  <PersonaSelector personas={personas} selectedPersonaId={selectedPersonaId} onSelect={setSelectedPersonaId} />
-                  <DifficultySelector selectedDifficulty={difficulty} onSelect={setDifficulty} />
-                  <Button onClick={startDebate} size="lg" className="w-full">Start Debate</Button>
-                </>
-              )}
+              <PersonaSelector personas={personas} selectedPersonaId={selectedPersonaId} onSelect={setSelectedPersonaId} />
+              <DifficultySelector selectedDifficulty={difficulty} onSelect={setDifficulty} />
+              <Button onClick={startDebate} size="lg" className="w-full">Start Debate</Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
