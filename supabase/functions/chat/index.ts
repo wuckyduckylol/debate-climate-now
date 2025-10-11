@@ -68,7 +68,13 @@ serve(async (req) => {
 
     // Calculate scores for the user's last message
     const lastUserMessage = messages[messages.length - 1];
-    const scores = await calculateScores(lastUserMessage.content, difficulty, lastUserMessage.citations || []);
+    const scores = await calculateScores(
+      lastUserMessage.content,
+      difficulty,
+      persona,
+      lastUserMessage.citations || [],
+      messages
+    );
 
     console.log("Response generated, scores:", scores);
 
@@ -142,45 +148,133 @@ Remember: Your goal is to defend your position but be convinceable with strong e
 async function calculateScores(
   userMessage: string,
   difficulty: string,
-  citations: any[]
+  persona: any,
+  citations: any[],
+  conversationHistory: any[]
 ): Promise<any> {
-  // Simple heuristic-based scoring
-  // In a production system, you'd use a more sophisticated LLM-based evaluation
-
-  const messageLower = userMessage.toLowerCase();
+  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
   
-  // Evidence quality: check for citations, sources, data
-  let evidenceScore = 0.3; // base score
-  if (citations && citations.length > 0) evidenceScore += 0.3;
-  if (messageLower.includes("nasa") || messageLower.includes("noaa") || messageLower.includes("ipcc")) evidenceScore += 0.2;
-  if (/\d+\s*(ppm|°c|degrees|percent|%)/.test(messageLower)) evidenceScore += 0.2; // contains units/numbers
-  evidenceScore = Math.min(1.0, evidenceScore);
+  const scoringPrompt = `You are an expert debate evaluator. Analyze this debate argument and provide detailed scores.
 
-  // Logic integrity: check for structure, reasoning words
-  let logicScore = 0.4;
-  if (messageLower.includes("because") || messageLower.includes("therefore") || messageLower.includes("this shows")) logicScore += 0.2;
-  if (messageLower.includes("evidence") || messageLower.includes("data") || messageLower.includes("research")) logicScore += 0.2;
-  if (messageLower.includes("mechanism") || messageLower.includes("how") || messageLower.includes("why")) logicScore += 0.2;
-  logicScore = Math.min(1.0, logicScore);
+DIFFICULTY LEVEL: ${difficulty}
+OPPONENT PERSONA: ${persona.name} - ${persona.persona_type}
+PERSONA DESCRIPTION: ${persona.description}
 
-  // Tone: check for respectful language (penalize ad hominem)
-  let toneScore = 0.7;
-  if (messageLower.includes("you're wrong") || messageLower.includes("stupid") || messageLower.includes("idiot")) toneScore -= 0.3;
-  if (messageLower.includes("i understand") || messageLower.includes("respectfully") || messageLower.includes("however")) toneScore += 0.2;
-  toneScore = Math.max(0.0, Math.min(1.0, toneScore));
+EVIDENCE USED BY DEBATER:
+${citations.map((c: any) => `- ${c.title} (${c.source}): ${c.summary}`).join('\n') || 'None'}
 
-  // Cross-disciplinary: detect different domains
-  let domains = 0;
-  if (messageLower.includes("physics") || messageLower.includes("greenhouse") || messageLower.includes("radiation")) domains++;
-  if (messageLower.includes("biology") || messageLower.includes("ecosystem") || messageLower.includes("species")) domains++;
-  if (messageLower.includes("econom") || messageLower.includes("cost") || messageLower.includes("gdp")) domains++;
-  if (messageLower.includes("ethic") || messageLower.includes("moral") || messageLower.includes("justice")) domains++;
-  const crossDisciplinaryScore = Math.min(1.0, domains * 0.3);
+CONVERSATION SO FAR:
+${conversationHistory.slice(-6).map((m: any) => `${m.role}: ${m.content}`).join('\n\n')}
 
-  return {
-    evidence: Math.round(evidenceScore * 100) / 100,
-    logic: Math.round(logicScore * 100) / 100,
-    tone: Math.round(toneScore * 100) / 100,
-    crossDisciplinary: Math.round(crossDisciplinaryScore * 100) / 100,
-  };
+CURRENT USER ARGUMENT:
+${userMessage}
+
+Evaluate this argument on a 0.0-1.0 scale for each dimension:
+
+1. EVIDENCE QUALITY (0.0-1.0):
+   - Did they use credible evidence from the provided packets?
+   - Are sources properly cited and relevant?
+   - ${difficulty === 'Easy' ? 'Basic evidence is acceptable' : difficulty === 'Moderate' ? 'Need solid citations' : difficulty === 'Hard' ? 'Require peer-reviewed sources' : 'Must have multiple high-quality sources'}
+
+2. LOGIC & REASONING (0.0-1.0):
+   - Is the argument logically sound?
+   - Do they address the opponent's points effectively?
+   - Are there causal mechanisms explained?
+   - ${difficulty === 'Easy' ? 'Basic reasoning is acceptable' : difficulty === 'Moderate' ? 'Need clear cause-effect' : difficulty === 'Hard' ? 'Require complex reasoning chains' : 'Must demonstrate multi-layered analysis'}
+
+3. TONE & ETHOS (0.0-1.0):
+   - Is the tone respectful and persuasive?
+   - Do they build credibility?
+   - Avoid aggressive or dismissive language
+   - ${difficulty === 'Easy' ? 'Friendly tone is fine' : difficulty === 'Moderate' ? 'Professional tone expected' : 'Academic rigor required'}
+
+4. CROSS-DISCIPLINARY THINKING (0.0-1.0):
+   - Do they connect multiple domains (science, economics, health, policy, technology)?
+   - ${difficulty === 'Easy' || difficulty === 'Moderate' ? 'Optional but bonus points' : difficulty === 'Hard' ? 'Should connect 2+ domains' : 'Must integrate 3+ disciplines'}
+
+5. COUNTER-ARGUMENT STRENGTH (0.0-1.0):
+   - How well do they counter the ${persona.persona_type}'s stance?
+   - Do they address the specific mindset of this persona?
+   - Do they actually challenge the opponent's position or are they just agreeing?
+
+IMPORTANT: If the user is AGREEING with the opponent rather than debating them, LOWER ALL SCORES significantly. This is a debate - they should be challenging ${persona.name}'s position, not supporting it.`;
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [{ role: 'user', content: scoringPrompt }],
+        tools: [{
+          type: 'function',
+          function: {
+            name: 'score_debate_turn',
+            description: 'Evaluate a debate turn with scores for each dimension',
+            parameters: {
+              type: 'object',
+              properties: {
+                evidence: { type: 'number', minimum: 0, maximum: 1, description: 'Evidence quality score 0.0-1.0' },
+                logic: { type: 'number', minimum: 0, maximum: 1, description: 'Logic and reasoning score 0.0-1.0' },
+                tone: { type: 'number', minimum: 0, maximum: 1, description: 'Tone and ethos score 0.0-1.0' },
+                crossDisciplinary: { type: 'number', minimum: 0, maximum: 1, description: 'Cross-disciplinary thinking score 0.0-1.0' },
+                counterArgumentStrength: { type: 'number', minimum: 0, maximum: 1, description: 'How well they counter the opponent 0.0-1.0' },
+                reasoning: { type: 'string', description: 'Brief explanation of the scores' }
+              },
+              required: ['evidence', 'logic', 'tone', 'crossDisciplinary', 'counterArgumentStrength', 'reasoning'],
+              additionalProperties: false
+            }
+          }
+        }],
+        tool_choice: { type: 'function', function: { name: 'score_debate_turn' } }
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('AI scoring failed:', response.status);
+      // Fallback to basic scoring
+      return {
+        evidence: 0.5,
+        logic: 0.5,
+        tone: 0.7,
+        crossDisciplinary: 0.3,
+      };
+    }
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    
+    if (toolCall?.function?.arguments) {
+      const scores = JSON.parse(toolCall.function.arguments);
+      console.log('AI Scoring:', scores);
+      
+      return {
+        evidence: scores.evidence,
+        logic: scores.logic,
+        tone: scores.tone,
+        crossDisciplinary: scores.crossDisciplinary,
+        reasoning: scores.reasoning,
+        counterArgumentStrength: scores.counterArgumentStrength,
+      };
+    }
+
+    // Fallback
+    return {
+      evidence: 0.5,
+      logic: 0.5,
+      tone: 0.7,
+      crossDisciplinary: 0.3,
+    };
+  } catch (error) {
+    console.error('Error in AI scoring:', error);
+    return {
+      evidence: 0.5,
+      logic: 0.5,
+      tone: 0.7,
+      crossDisciplinary: 0.3,
+    };
+  }
 }
